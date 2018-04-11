@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"strconv"
@@ -12,9 +15,12 @@ import (
 
 func main() {
 	data := url.Values{}
-	data.Set("email", "andrew@calcbench.com")
+	data.Set("email", os.Getenv("CALCBENCH_USERNAME"))
 	data.Set("strng", os.Getenv("CALCBENCH_PASSWORD"))
-	client := &http.Client{}
+	cookieJar, _ := cookiejar.New(nil)
+	client := &http.Client{
+		Jar: cookieJar,
+	}
 	r, _ := http.NewRequest("POST", "https://www.calcbench.com/account/LogOnAjax", strings.NewReader(data.Encode()))
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
@@ -31,4 +37,46 @@ func main() {
 		}
 		fmt.Printf("%s\n", string(contents))
 	}
+	periodParams := PeriodParams{2016, 0}
+	companiesParams := CompaniesParameters{[]string{"msft"}}
+	pageParams := StandardizedDataPageParams{[]string{"revenue"}}
+	APIqueryParams := StandardizedDataParams{pageParams, periodParams, companiesParams}
+	b, err := json.Marshal(APIqueryParams)
+	if err != nil {
+		fmt.Printf("%s", err)
+	}
+	req, err := http.NewRequest("POST", "https://www.calcbench.com/api/mappedData", bytes.NewBuffer(b))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = client.Do(req)
+	if err != nil {
+		fmt.Printf("%s", err)
+		os.Exit(1)
+	} else {
+		defer resp.Body.Close()
+		contents, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Printf("%s", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%s\n", string(contents))
+	}
+}
+
+type PeriodParams struct {
+	Year   int32
+	Period int8
+}
+
+type StandardizedDataPageParams struct {
+	Metrics []string
+}
+
+type CompaniesParameters struct {
+	CompanyIdentifiers []string
+}
+
+type StandardizedDataParams struct {
+	PageParameters      StandardizedDataPageParams
+	PeriodParameters    PeriodParams
+	CompaniesParameters CompaniesParameters
 }
