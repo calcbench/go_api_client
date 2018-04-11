@@ -39,7 +39,7 @@ func main() {
 	}
 	periodParams := PeriodParams{2016, 0}
 	companiesParams := CompaniesParameters{[]string{"msft"}}
-	pageParams := StandardizedDataPageParams{[]string{"revenue"}}
+	pageParams := StandardizedDataPageParams{[]string{"revision_count"}}
 	APIqueryParams := StandardizedDataParams{pageParams, periodParams, companiesParams}
 	b, err := json.Marshal(APIqueryParams)
 	if err != nil {
